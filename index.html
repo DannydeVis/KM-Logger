@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KM Logger</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #1a1a1f;
+    --surface2: #222228;
+    --border: #2e2e38;
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --text: #f0f0f0;
+    --muted: #666;
+    --danger: #ff4747;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 32px; }
+  header h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
+  header span { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); padding: 4px; border-radius: 10px; }
+  .tab { flex: 1; padding: 10px; border: none; border-radius: 7px; background: transparent; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: var(--accent); color: #000; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-row.triple { grid-template-columns: 1fr 1fr 80px; }
+
+  label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+  input, select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 10px 12px;
+    outline: none; transition: border-color 0.15s; -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+
+  .btn-primary { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 10px; color: #000; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 4px; transition: transform 0.1s; letter-spacing: -0.3px; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { padding: 8px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Syne', sans-serif; font-weight: 600; font-size: 12px; cursor: pointer; }
+  .btn-danger { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--danger); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; }
+
+  .route-chips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+  .route-chip { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: left; width: 100%; }
+  .route-chip:active { background: var(--surface2); }
+  .route-chip.selected { border-color: var(--accent); background: #1e2010; }
+  .route-chip-label { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .route-chip-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .route-chip-km { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--accent2); white-space: nowrap; margin-left: 12px; }
+  .route-chip-km span { font-size: 11px; color: var(--muted); }
+
+  .retour-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .toggle-btn { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .toggle-btn.active { border-color: var(--accent); color: var(--accent); background: #1e2010; }
+
+  .rit-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+  .rit-datum { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .rit-route { font-size: 14px; font-weight: 600; line-height: 1.4; }
+  .rit-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .rit-km { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: var(--accent2); text-align: right; }
+  .rit-km span { font-size: 11px; color: var(--muted); }
+  .rit-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+
+  .maand-selector { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .maand-btn { padding: 8px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .maand-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .summary-stat { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .summary-stat:last-child { border-bottom: none; }
+  .summary-stat-label { font-size: 13px; color: var(--muted); }
+  .summary-stat-value { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; }
+  .summary-stat-value.big { font-size: 24px; color: var(--accent); }
+
+  .concur-table { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+  .concur-table table { width: 100%; border-collapse: collapse; font-family: 'DM Mono', monospace; font-size: 12px; }
+  .concur-table th { background: var(--surface2); padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+  .concur-table td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+  .concur-table tr:hover td { background: var(--surface2); }
+
+  .route-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .route-row:last-child { border-bottom: none; }
+  .route-row-label { font-size: 13px; font-weight: 600; }
+  .route-row-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .route-row-km { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--accent2); margin: 0 12px; }
+
+  .empty-state { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 14px; }
+
+  .section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: block; }
+
+  .divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); font-size: 11px; font-family: 'DM Mono', monospace; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--accent); color: #000; padding: 10px 20px; border-radius: 20px; font-weight: 700; font-size: 13px; transition: transform 0.3s cubic-bezier(.34,1.56,.64,1); z-index: 999; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .storage-note { text-align: center; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>KM Logger</h1>
+  <span>MediaMarkt RBA</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('log')">Rit loggen</button>
+  <button class="tab" onclick="switchTab('overzicht')">Overzicht</button>
+  <button class="tab" onclick="switchTab('routes')">Routes</button>
+</div>
+
+<!-- LOG -->
+<div class="panel active" id="panel-log">
+  <div class="form-card" style="padding-bottom:16px">
+    <label>Datum</label>
+    <input type="date" id="datum">
+  </div>
+
+  <span class="section-label">Snelle routes</span>
+  <div class="route-chips" id="route-chips"></div>
+
+  <div id="retour-wrap" style="display:none; margin-bottom:16px;">
+    <span class="section-label">Richting</span>
+    <div class="retour-toggle">
+      <button class="toggle-btn" id="tog-heen" onclick="setRichting('heen')">Heen</button>
+      <button class="toggle-btn" id="tog-retour" onclick="setRichting('retour')">Retour</button>
+      <button class="toggle-btn active" id="tog-beide" onclick="setRichting('beide')">Heen + retour</button>
+    </div>
+  </div>
+
+  <div class="divider">of handmatig</div>
+
+  <div class="form-card">
+    <div class="form-row">
+      <div><label>Van</label><input type="text" id="van" list="locatie-list" placeholder="Vertrekpunt"></div>
+      <div><label>Naar</label><input type="text" id="naar" list="locatie-list" placeholder="Bestemming"></div>
+    </div>
+    <div class="form-row single">
+      <div><label>Via (optioneel)</label><input type="text" id="via" list="locatie-list" placeholder="Tussenstop"></div>
+    </div>
+    <div class="form-row triple">
+      <div><label>Heen (km)</label><input type="number" id="km-heen" placeholder="0" min="0"></div>
+      <div><label>Retour (km)</label><input type="number" id="km-retour" placeholder="0" min="0"></div>
+      <div><label>Totaal</label><input type="number" id="km-totaal" readonly style="color:var(--accent2)"></div>
+    </div>
+    <div class="form-row single">
+      <div><label>Omschrijving</label><input type="text" id="omschrijving" placeholder="bijv. Storebezoek N005"></div>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="logRit()">＋ Rit opslaan</button>
+  <div id="vandaag-ritten" style="margin-top:20px"></div>
+  <p class="storage-note">Data opgeslagen in je browser (localStorage)</p>
+</div>
+
+<!-- OVERZICHT -->
+<div class="panel" id="panel-overzicht">
+  <div class="maand-selector" id="maand-selector"></div>
+  <div id="overzicht-content"></div>
+</div>
+
+<!-- ROUTES -->
+<div class="panel" id="panel-routes">
+  <div class="form-card">
+    <span class="section-label" style="margin-bottom:14px">Route toevoegen</span>
+    <div class="form-row">
+      <div><label>Van</label><input type="text" id="r-van" list="locatie-list" placeholder="Vertrekpunt"></div>
+      <div><label>Naar</label><input type="text" id="r-naar" list="locatie-list" placeholder="Bestemming"></div>
+    </div>
+    <div class="form-row single">
+      <div><label>Via (optioneel)</label><input type="text" id="r-via" placeholder="Tussenstop"></div>
+    </div>
+    <div class="form-row single">
+      <div><label>Afstand één richting (km)</label><input type="number" id="r-km" placeholder="bijv. 19" min="1"></div>
+    </div>
+    <div class="form-row single">
+      <div><label>Korte naam</label><input type="text" id="r-label" placeholder="bijv. Thuis → N001"></div>
+    </div>
+    <button class="btn-primary" onclick="addRoute()">Route opslaan</button>
+  </div>
+
+  <div class="form-card">
+    <span class="section-label" style="margin-bottom:12px">Opgeslagen routes</span>
+    <div id="routes-list"></div>
+  </div>
+</div>
+
+<datalist id="locatie-list"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+let ritten = JSON.parse(localStorage.getItem('km_ritten') || '[]');
+let locaties = JSON.parse(localStorage.getItem('km_locaties') || '["Thuis","MediaMarkt Rotterdam Alexander N001"]');
+let routes = JSON.parse(localStorage.getItem('km_routes') || '[]');
+let selectedRoute = null;
+let richting = 'beide';
+
+document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+document.getElementById('km-heen').addEventListener('input', calcHandmatig);
+document.getElementById('km-retour').addEventListener('input', calcHandmatig);
+
+function calcHandmatig() {
+  const h = parseFloat(document.getElementById('km-heen').value) || 0;
+  const r = parseFloat(document.getElementById('km-retour').value) || 0;
+  document.getElementById('km-totaal').value = (h + r) || '';
+}
+
+renderLocatieList();
+renderRouteChips();
+renderVandaag();
+
+function switchTab(tab) {
+  ['log','overzicht','routes'].forEach((t, i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', t === tab);
+    document.querySelectorAll('.panel')[i].classList.toggle('active', t === tab);
+  });
+  if (tab === 'overzicht') renderOverzicht();
+  if (tab === 'routes') renderRoutesList();
+}
+
+function renderRouteChips() {
+  const el = document.getElementById('route-chips');
+  if (!routes.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px">Voeg routes toe via het Routes-tabblad</div>';
+    return;
+  }
+  el.innerHTML = routes.map((r, i) => `
+    <button class="route-chip ${selectedRoute === i ? 'selected' : ''}" onclick="selectRoute(${i})">
+      <div>
+        <div class="route-chip-label">${r.label}</div>
+        <div class="route-chip-sub">${r.van} → ${r.naar}${r.via ? ' via ' + r.via : ''}</div>
+      </div>
+      <div class="route-chip-km">${r.km}<span> km</span></div>
+    </button>
+  `).join('');
+}
+
+function selectRoute(i) {
+  selectedRoute = i;
+  renderRouteChips();
+  document.getElementById('retour-wrap').style.display = 'block';
+  const r = routes[i];
+  document.getElementById('van').value = r.van;
+  document.getElementById('naar').value = r.naar;
+  document.getElementById('via').value = r.via || '';
+  setRichting('beide');
+}
+
+function setRichting(r) {
+  richting = r;
+  ['heen','retour','beide'].forEach(v => document.getElementById('tog-' + v).classList.toggle('active', v === r));
+  if (selectedRoute === null) return;
+  const km = routes[selectedRoute].km;
+  if (r === 'heen') { document.getElementById('km-heen').value = km; document.getElementById('km-retour').value = ''; document.getElementById('km-totaal').value = km; }
+  else if (r === 'retour') { document.getElementById('km-heen').value = ''; document.getElementById('km-retour').value = km; document.getElementById('km-totaal').value = km; }
+  else { document.getElementById('km-heen').value = km; document.getElementById('km-retour').value = km; document.getElementById('km-totaal').value = km * 2; }
+}
+
+function logRit() {
+  const datum = document.getElementById('datum').value;
+  const van = document.getElementById('van').value.trim();
+  const naar = document.getElementById('naar').value.trim();
+  const via = document.getElementById('via').value.trim();
+  const heen = parseFloat(document.getElementById('km-heen').value) || 0;
+  const retour = parseFloat(document.getElementById('km-retour').value) || 0;
+  const omschrijving = document.getElementById('omschrijving').value.trim();
+
+  if (!datum || !van || !naar || (!heen && !retour)) { showToast('Vul datum, van, naar en km in'); return; }
+
+  ritten.push({ id: Date.now(), datum, van, naar, via, heen, retour, totaal: heen + retour, omschrijving });
+  saveRitten();
+  [van, naar, via].filter(Boolean).forEach(l => { if (!locaties.includes(l)) { locaties.push(l); saveLocaties(); } });
+
+  selectedRoute = null;
+  ['van','naar','via','omschrijving'].forEach(id => document.getElementById(id).value = '');
+  ['km-heen','km-retour','km-totaal'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('retour-wrap').style.display = 'none';
+
+  renderRouteChips();
+  renderLocatieList();
+  renderVandaag();
+  showToast('Rit opgeslagen ✓');
+}
+
+function deleteRit(id) {
+  ritten = ritten.filter(r => r.id !== id);
+  saveRitten();
+  renderVandaag();
+}
+
+function renderVandaag() {
+  const vandaag = document.getElementById('datum').value;
+  const vr = ritten.filter(r => r.datum === vandaag);
+  const el = document.getElementById('vandaag-ritten');
+  if (!vr.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<span class="section-label">Ritten vandaag</span>${vr.map(r => `
+    <div class="rit-item">
+      <div>
+        <div class="rit-datum">${formatDatum(r.datum)}</div>
+        <div class="rit-route">${r.van} → ${r.naar}</div>
+        ${r.via ? `<div class="rit-sub">via ${r.via}</div>` : ''}
+        ${r.omschrijving ? `<div class="rit-sub">${r.omschrijving}</div>` : ''}
+        <div class="rit-actions"><button class="btn-danger" onclick="deleteRit(${r.id})">✕ verwijder</button></div>
+      </div>
+      <div><div class="rit-km">${r.totaal}<br><span>km</span></div></div>
+    </div>
+  `).join('')}`;
+}
+
+function renderOverzicht() {
+  const maanden = [...new Set(ritten.map(r => r.datum.slice(0,7)))].sort().reverse();
+  const huidig = new Date().toISOString().slice(0,7);
+  if (!maanden.includes(huidig)) maanden.unshift(huidig);
+  const sel = document.getElementById('maand-selector');
+  let active = sel.dataset.active || maanden[0];
+  if (!maanden.includes(active)) active = maanden[0];
+  sel.innerHTML = maanden.map(m => `<button class="maand-btn ${m === active ? 'active' : ''}" onclick="selectMaand('${m}')">${formatMaand(m)}</button>`).join('');
+  sel.dataset.active = active;
+  renderMaand(active);
+}
+
+function selectMaand(m) {
+  document.getElementById('maand-selector').dataset.active = m;
+  document.querySelectorAll('.maand-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === formatMaand(m)));
+  renderMaand(m);
+}
+
+function renderMaand(maand) {
+  const mr = ritten.filter(r => r.datum.startsWith(maand)).sort((a,b) => a.datum.localeCompare(b.datum));
+  const totKm = mr.reduce((s,r) => s + r.totaal, 0);
+  const el = document.getElementById('overzicht-content');
+  if (!mr.length) { el.innerHTML = '<div class="empty-state">Geen ritten in deze maand</div>'; return; }
+  el.innerHTML = `
+    <div class="summary-card">
+      <div class="summary-stat"><span class="summary-stat-label">Totaal km</span><span class="summary-stat-value big">${totKm} km</span></div>
+      <div class="summary-stat"><span class="summary-stat-label">Aantal ritten</span><span class="summary-stat-value">${mr.length}</span></div>
+      <div class="summary-stat"><span class="summary-stat-label">Vergoeding (€0,23/km)</span><span class="summary-stat-value">€${(totKm * 0.23).toFixed(2)}</span></div>
+    </div>
+    <div class="concur-table">
+      <table>
+        <thead><tr><th>Datum</th><th>Route</th><th>Omschr.</th><th style="text-align:right">KM</th></tr></thead>
+        <tbody>${mr.map(r => `
+          <tr>
+            <td style="white-space:nowrap">${formatDatumKort(r.datum)}</td>
+            <td>${r.van} → ${r.naar}${r.via ? `<br><span style="color:var(--muted);font-size:10px">via ${r.via}</span>` : ''}</td>
+            <td style="color:var(--muted)">${r.omschrijving || '-'}</td>
+            <td style="text-align:right;color:var(--accent2)">${r.totaal}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <button class="btn-secondary" onclick="kopieerConcur('${maand}')" style="width:100%">📋 Kopieer voor Concur</button>
+  `;
+}
+
+function kopieerConcur(maand) {
+  const mr = ritten.filter(r => r.datum.startsWith(maand)).sort((a,b) => a.datum.localeCompare(b.datum));
+  const lines = mr.map(r => `${formatDatumKort(r.datum)}\t${r.van} → ${r.naar}${r.via ? ` (via ${r.via})` : ''}\t${r.omschrijving || ''}\t${r.totaal} km`);
+  lines.push(`\t\tTOTAAL\t${mr.reduce((s,r) => s + r.totaal, 0)} km`);
+  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Gekopieerd ✓'));
+}
+
+function addRoute() {
+  const van = document.getElementById('r-van').value.trim();
+  const naar = document.getElementById('r-naar').value.trim();
+  const via = document.getElementById('r-via').value.trim();
+  const km = parseFloat(document.getElementById('r-km').value);
+  const label = document.getElementById('r-label').value.trim();
+  if (!van || !naar || !km) { showToast('Vul van, naar en km in'); return; }
+  routes.push({ van, naar, via, km, label: label || `${van} → ${naar}` });
+  saveRoutes();
+  [van, naar, via].filter(Boolean).forEach(l => { if (!locaties.includes(l)) { locaties.push(l); saveLocaties(); } });
+  ['r-van','r-naar','r-via','r-km','r-label'].forEach(id => document.getElementById(id).value = '');
+  renderRouteChips();
+  renderLocatieList();
+  renderRoutesList();
+  showToast('Route opgeslagen ✓');
+}
+
+function deleteRoute(i) {
+  routes.splice(i, 1);
+  if (selectedRoute === i) { selectedRoute = null; document.getElementById('retour-wrap').style.display = 'none'; }
+  saveRoutes();
+  renderRouteChips();
+  renderRoutesList();
+}
+
+function renderRoutesList() {
+  const el = document.getElementById('routes-list');
+  if (!routes.length) { el.innerHTML = '<div class="empty-state" style="padding:8px">Nog geen routes</div>'; return; }
+  el.innerHTML = routes.map((r, i) => `
+    <div class="route-row">
+      <div>
+        <div class="route-row-label">${r.label}</div>
+        <div class="route-row-sub">${r.van} → ${r.naar}${r.via ? ' via ' + r.via : ''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="route-row-km">${r.km} km</span>
+        <button class="btn-danger" onclick="deleteRoute(${i})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderLocatieList() {
+  document.getElementById('locatie-list').innerHTML = locaties.map(l => `<option value="${l}">`).join('');
+}
+
+function saveRitten() { localStorage.setItem('km_ritten', JSON.stringify(ritten)); }
+function saveLocaties() { localStorage.setItem('km_locaties', JSON.stringify(locaties)); }
+function saveRoutes() { localStorage.setItem('km_routes', JSON.stringify(routes)); }
+
+function formatDatum(d) { return new Date(d + 'T00:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'long' }); }
+function formatDatumKort(d) { return new Date(d + 'T00:00:00').toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit' }); }
+function formatMaand(m) { return new Date(m + '-01').toLocaleDateString('nl-NL', { month: 'short', year: '2-digit' }); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
