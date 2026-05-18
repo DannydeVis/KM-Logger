@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>KM Logger</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -114,6 +118,24 @@
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--accent); color: #fff; padding: 10px 20px; border-radius: 20px; font-weight: 700; font-size: 13px; transition: transform 0.3s cubic-bezier(.34,1.56,.64,1); z-index: 999; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
   .storage-note { text-align: center; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 20px; }
+
+  header { align-items: center; }
+  .btn-split { margin-left: auto; display: flex; align-items: center; gap: 6px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+  .btn-split:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-split.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-split svg { display: block; flex-shrink: 0; }
+
+  .panels-wrap.split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .panels-wrap.split .panel { display: none; }
+  .panels-wrap.split #panel-log,
+  .panels-wrap.split #panel-overzicht { display: block; }
+
+  @media (max-width: 767px) {
+    .btn-split { display: none; }
+    .panels-wrap.split { display: block; }
+    .panels-wrap.split .panel { display: none; }
+    .panels-wrap.split .panel.active { display: block; }
+  }
 </style>
 </head>
 <body>
@@ -121,6 +143,13 @@
 <header>
   <h1>KM Logger</h1>
   <span>MediaMarkt RBA</span>
+  <button class="btn-split" id="btn-split" onclick="toggleSplit()" title="Deel scherm">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="2" width="6" height="12" rx="1.5" fill="currentColor"/>
+      <rect x="9" y="2" width="6" height="12" rx="1.5" fill="currentColor"/>
+    </svg>
+    Deel scherm
+  </button>
 </header>
 
 <div class="tabs">
@@ -128,6 +157,8 @@
   <button class="tab" onclick="switchTab('overzicht')">Overzicht</button>
   <button class="tab" onclick="switchTab('routes')">Routes</button>
 </div>
+
+<div class="panels-wrap" id="panels-wrap">
 
 <!-- LOG -->
 <div class="panel active" id="panel-log">
@@ -205,6 +236,8 @@
   </div>
 </div>
 
+</div><!-- /panels-wrap -->
+
 <datalist id="locatie-list"></datalist>
 <div class="toast" id="toast"></div>
 
@@ -230,13 +263,43 @@ renderRouteChips();
 renderVandaag();
 
 function switchTab(tab) {
+  const splitActive = document.getElementById('panels-wrap').classList.contains('split');
   ['log','overzicht','routes'].forEach((t, i) => {
     document.querySelectorAll('.tab')[i].classList.toggle('active', t === tab);
-    document.querySelectorAll('.panel')[i].classList.toggle('active', t === tab);
+    if (!splitActive) {
+      document.querySelectorAll('.panel')[i].classList.toggle('active', t === tab);
+    }
   });
   if (tab === 'overzicht') renderOverzicht();
   if (tab === 'routes') renderRoutesList();
 }
+
+let splitMode = false;
+
+function toggleSplit() {
+  if (window.innerWidth < 768) return;
+  splitMode = !splitMode;
+  const wrap = document.getElementById('panels-wrap');
+  const btn = document.getElementById('btn-split');
+  wrap.classList.toggle('split', splitMode);
+  btn.classList.toggle('active', splitMode);
+  if (splitMode) {
+    renderOverzicht();
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  } else {
+    switchTab('log');
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (splitMode && window.innerWidth < 768) {
+    splitMode = false;
+    document.getElementById('panels-wrap').classList.remove('split');
+    document.getElementById('btn-split').classList.remove('active');
+    switchTab('log');
+  }
+});
 
 function renderRouteChips() {
   const el = document.getElementById('route-chips');
